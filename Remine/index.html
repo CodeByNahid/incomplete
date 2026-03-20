@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Reminder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #09c719;
+      --secondary-color: #91f596c9;
+      --text-color: #333;
+      --light-text: #100f0f;
+      --border-color: #e0e0e0;
+      --success-color: #4caf50;
+      --error-color: #f44336;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: #f9f9f9;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      margin-top: 20px;
+    }
+    
+    h1 {
+      color: var(--primary-color);
+      text-align: center;
+      margin-bottom: 25px;
+      font-weight: 500;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 16px;
+      transition: border 0.3s;
+    }
+    
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(74, 107, 255, 0.2);
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .datetime-container {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .datetime-container .form-group {
+      flex: 1;
+    }
+    
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #edbc28df;
+    }
+    
+    button:disabled {
+      background-color: #0e0d0d;
+      cursor: not-allowed;
+    }
+    
+    .reminder-list {
+      margin-top: 30px;
+    }
+    
+    .reminder-item {
+      background: var(--secondary-color);
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .reminder-text {
+      font-weight: 500;
+    }
+    
+    .reminder-time {
+      color: var(--light-text);
+      font-size: 14px;
+    }
+    
+    .notification-permission {
+      background-color: #fff8e1;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      text-align: center;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .notification-permission button {
+      margin-top: 10px;
+      background-color: #ffc107;
+      color: #333;
+    }
+    
+    .notification-permission button:hover {
+      background-color: #ffb300;
+    }
+    
+    .status-message {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      text-align: center;
+      display: none;
+    }
+    
+    .success {
+      background-color: #e8f5e9;
+      color: var(--success-color);
+      display: block;
+    }
+    
+    .error {
+      background-color: #ffebee;
+      color: var(--error-color);
+      display: block;
+    }
+    
+    @media (max-width: 480px) {
+      .datetime-container {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      body {
+        padding: 10px;
+      }
+      
+      .container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Smart Reminder</h1>
+    
+    <div id="permission-alert" class="notification-permission" style="display: none;">
+      <p>Please enable notifications to receive reminders.</p>
+      <button id="enable-notifications">Enable Notifications</button>
+    </div>
+    
+    <div id="status-message" class="status-message"></div>
+    
+    <div class="form-group">
+      <label for="reminderMsg">Reminder Message</label>
+      <textarea id="reminderMsg" placeholder="What do you want to be reminded about?"></textarea>
+    </div>
+    
+    <div class="datetime-container">
+      <div class="form-group">
+        <label for="reminderDate">Date</label>
+        <input type="date" id="reminderDate" min="">
+      </div>
+      
+      <div class="form-group">
+        <label for="reminderTime">Time</label>
+        <input type="time" id="reminderTime">
+      </div>
+    </div>
+    
+    <button id="setReminderBtn">Set Reminder</button>
+    
+    <div class="reminder-list" id="reminderList">
+      <h3>Upcoming Reminders</h3>
+      <!-- Reminders will be added here dynamically -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set min date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('reminderDate').min = today;
+      
+      // Check notification permission
+      checkNotificationPermission();
+      
+      // Load existing reminders
+      loadReminders();
+      
+      // Set up event listeners
+      document.getElementById('enable-notifications').addEventListener('click', requestNotificationPermission);
+      document.getElementById('setReminderBtn').addEventListener('click', setReminder);
+    });
+    
+    function checkNotificationPermission() {
+      if (!('Notification' in window)) {
+        showStatus('Notifications are not supported in your browser.', 'error');
+        return;
+      }
+      
+      if (Notification.permission === 'granted') {
+        document.getElementById('permission-alert').style.display = 'none';
+      } else {
+        document.getElementById('permission-alert').style.display = 'block';
+      }
+    }
+    
+    function requestNotificationPermission() {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          document.getElementById('permission-alert').style.display = 'none';
+          showStatus('Notifications enabled successfully!', 'success');
+        } else {
+          showStatus('Please enable notifications to receive reminders.', 'error');
+        }
+      });
+    }
+    
+    function setReminder() {
+      const msg = document.getElementById('reminderMsg').value.trim();
+      const date = document.getElementById('reminderDate').value;
+      const time = document.getElementById('reminderTime').value;
+      
+      if (!msg) {
+        showStatus('Please enter a reminder message.', 'error');
+        return;
+      }
+      
+      if (!date || !time) {
+        showStatus('Please select both date and time.', 'error');
+        return;
+      }
+      
+      const reminderDateTime = new Date(`${date}T${time}`);
+      const now = new Date();
+      
+      if (reminderDateTime <= now) {
+        showStatus('Please select a future date and time.', 'error');
+        return;
+      }
+      
+      const delay = reminderDateTime.getTime() - now.getTime();
+      const reminderId = Date.now().toString();
+      
+      // Store reminder in localStorage
+      const reminder = {
+        id: reminderId,
+        msg: msg,
+        timestamp: reminderDateTime.getTime(),
+        dateTime: reminderDateTime.toISOString()
+      };
+      
+      saveReminder(reminder);
+      
+      // Set timeout for notification
+      setTimeout(() => {
+        showNotification(msg);
+        removeReminder(reminderId);
+      }, delay);
+      
+      showStatus(`Reminder set for ${formatDateTime(reminderDateTime)}`, 'success');
+      document.getElementById('reminderMsg').value = '';
+      loadReminders();
+    }
+    
+    function showNotification(msg) {
+      if (Notification.permission === 'granted') {
+        const notification = new Notification('Reminder', {
+          body: msg,
+          icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+          vibrate: [200, 100, 200]  // Vibration pattern for mobile devices
+        });
+        
+        // Handle notification click
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
+      
+      // Fallback for browsers that don't support notifications
+      if (!('Notification' in window)) {
+        alert(`Reminder: ${msg}`);
+      }
+    }
+    
+    function saveReminder(reminder) {
+      let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+      reminders.push(reminder);
+      localStorage.setItem('reminders', JSON.stringify(reminders));
+    }
+    
+    function loadReminders() {
+      const reminderList = document.getElementById('reminderList');
+      let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+      
+      // Clear existing list except the heading
+      while (reminderList.children.length > 1) {
+        reminderList.removeChild(reminderList.lastChild);
+      }
+      
+      // Filter out past reminders
+      const now = new Date().getTime();
+      reminders = reminders.filter(r => r.timestamp > now);
+      localStorage.setItem('reminders', JSON.stringify(reminders));
+      
+      if (reminders.length === 0) {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.textContent = 'No upcoming reminders.';
+        emptyMsg.style.color = 'var(--light-text)';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.marginTop = '10px';
+        reminderList.appendChild(emptyMsg);
+        return;
+      }
+      
+      // Sort by date
+      reminders.sort((a, b) => a.timestamp - b.timestamp);
+      
+      // Add reminders to list
+      reminders.forEach(reminder => {
+        const reminderItem = document.createElement('div');
+        reminderItem.className = 'reminder-item';
+        
+        const reminderText = document.createElement('div');
+        reminderText.className = 'reminder-text';
+        reminderText.textContent = reminder.msg;
+        
+        const reminderTime = document.createElement('div');
+        reminderTime.className = 'reminder-time';
+        reminderTime.textContent = formatDateTime(new Date(reminder.timestamp));
+        
+        reminderItem.appendChild(reminderText);
+        reminderItem.appendChild(reminderTime);
+        reminderList.appendChild(reminderItem);
+      });
+    }
+    
+    function removeReminder(id) {
+      let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+      reminders = reminders.filter(r => r.id !== id);
+      localStorage.setItem('reminders', JSON.stringify(reminders));
+      loadReminders();
+    }
+    
+    function formatDateTime(date) {
+      return date.toLocaleString([], {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('status-message');
+      statusEl.textContent = message;
+      statusEl.className = 'status-message ' + type;
+      
+      // Hide after 5 seconds
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 5000);
+    }
+    
+    // Service worker registration for PWA and better notifications
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

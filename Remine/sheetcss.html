@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editable Info Box</title>
+  <style>
+    :root {
+      --primary-color: #4285f4;
+      --success-color: #34a853;
+      --danger-color: #ea4335;
+      --warning-color: #fbbc05;
+      --text-color: #333;
+      --light-gray: #f5f5f5;
+      --border-color: #ddd;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: #f9f9f9;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 28px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-color);
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 25px;
+      margin-top: 20px;
+    }
+    
+    #infoBox {
+      width: 100%;
+      height: 200px;
+      padding: 15px;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 16px;
+      resize: vertical;
+      transition: border-color 0.3s ease;
+    }
+    
+    #infoBox:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+    }
+    
+    #infoBox[readonly] {
+      background-color: var(--light-gray);
+      cursor: not-allowed;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    #editBtn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    #editBtn:hover {
+      background-color: #3367d6;
+      transform: translateY(-2px);
+    }
+    
+    #saveBtn {
+      background-color: var(--success-color);
+      color: white;
+      display: none;
+    }
+    
+    #saveBtn:hover {
+      background-color: #2d9249;
+      transform: translateY(-2px);
+    }
+    
+    #status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .loading {
+      color: var(--primary-color);
+      background-color: rgba(66, 133, 244, 0.1);
+    }
+    
+    .success {
+      color: var(--success-color);
+      background-color: rgba(52, 168, 83, 0.1);
+    }
+    
+    .error {
+      color: var(--danger-color);
+      background-color: rgba(234, 67, 53, 0.1);
+    }
+    
+    .warning {
+      color: var(--warning-color);
+      background-color: rgba(251, 188, 5, 0.1);
+    }
+    
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      #infoBox {
+        height: 150px;
+      }
+      
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Room Booking Information</h2>
+    <textarea id="infoBox" readonly></textarea>
+    <div class="button-group">
+      <button id="editBtn">Edit Information</button>
+      <button id="saveBtn">Save Changes</button>
+    </div>
+    <div id="status" class="loading">Loading information...</div>
+  </div>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbyigskCjRYyDmC0s15x_FjmSHRWu1p1-qBSw2y4vqtchMs3YN8iT_2WeQHpTNH9iKE/exec";
+    const infoBox = document.getElementById("infoBox");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const statusDiv = document.getElementById("status");
+
+    // Update status with styling
+    function setStatus(message, type) {
+      statusDiv.textContent = message;
+      statusDiv.className = type;
+    }
+
+    // Load initial information
+    async function loadInfo() {
+      try {
+        setStatus("Loading information...", "loading");
+        const response = await fetch(`${apiUrl}?action=getInfo`);
+        const data = await response.text();
+        
+        // Handle JSONP response if needed
+        if (data.startsWith('showInfo("') || data.includes('callback')) {
+          const match = data.match(/showInfo\("?(.*?)"?\)/);
+          infoBox.value = match ? match[1] : "Error parsing data";
+        } else {
+          infoBox.value = data;
+        }
+        setStatus("Information loaded successfully", "success");
+      } catch (error) {
+        console.error("Error loading info:", error);
+        infoBox.value = "Failed to load information";
+        setStatus("Error loading information", "error");
+      }
+    }
+
+    // Handle login
+    editBtn.onclick = async () => {
+      const user = prompt("Enter User ID:");
+      if (!user) return;
+      
+      const pass = prompt("Enter Password:");
+      if (!pass) return;
+
+      try {
+        setStatus("Authenticating...", "loading");
+        
+        // Using POST for security
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=login&user_id=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`
+        });
+        
+        const result = await response.text();
+        console.log("Login response:", result);
+        
+        // Handle different response formats
+        let authResult;
+        if (result.startsWith('loginCallback("')) {
+          authResult = result.match(/loginCallback\("?(.*?)"?\)/)[1];
+        } else {
+          authResult = result;
+        }
+
+        if (authResult.trim() === "success") {
+          infoBox.removeAttribute("readonly");
+          editBtn.style.display = "none";
+          saveBtn.style.display = "inline";
+          setStatus("Authentication successful - you can now edit", "success");
+        } else {
+          setStatus("Authentication failed", "error");
+          alert("Invalid credentials. Please try again.");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        setStatus("Error during authentication", "error");
+        alert("Error during authentication. Please try again.");
+      }
+    };
+
+    // Handle saving
+    saveBtn.onclick = async () => {
+      const newInfo = infoBox.value.trim();
+      if (!newInfo) {
+        alert("Please enter some information to save");
+        return;
+      }
+
+      try {
+        setStatus("Saving information...", "loading");
+        
+        // Using POST for security
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=updateInfo&new_info=${encodeURIComponent(newInfo)}`
+        });
+        
+        const result = await response.text();
+        console.log("Save response:", result);
+        
+        // Handle different response formats
+        let saveResult;
+        if (result.startsWith('saveCallback("')) {
+          saveResult = result.match(/saveCallback\("?(.*?)"?\)/)[1];
+        } else {
+          saveResult = result;
+        }
+
+        if (saveResult.trim() === "updated") {
+          infoBox.setAttribute("readonly", true);
+          editBtn.style.display = "inline";
+          saveBtn.style.display = "none";
+          setStatus("Information updated successfully!", "success");
+          alert("Changes saved successfully!");
+        } else {
+          setStatus("Failed to save information", "error");
+          alert("Failed to save information. Please try again.");
+        }
+      } catch (error) {
+        console.error("Save error:", error);
+        setStatus("Error saving information", "error");
+        alert("Error saving information. Please try again.");
+      }
+    };
+
+    // Load info when page loads
+    window.addEventListener('DOMContentLoaded', loadInfo);
+  </script>
+</body>
+</html>

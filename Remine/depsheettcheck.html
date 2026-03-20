@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editable Info Box</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #infoBox { width: 100%; height: 150px; }
+    #editBtn, #saveBtn { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Information Box</h2>
+  <textarea id="infoBox" readonly></textarea><br />
+  <button id="editBtn">Edit</button>
+  <button id="saveBtn" style="display:none;">Save</button>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbw55-ABTpLLo8w6ZbW77PYtC-zLzkGQwNlCQfvCXW8UrEbLdOo8Lum9LlZN8aN3DzKg/exec";
+
+    const infoBox = document.getElementById("infoBox");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+
+    // Initial Info Load
+    async function loadInfo() {
+      try {
+        const response = await fetch(`${apiUrl}?action=getInfo`);
+        const data = await response.text();
+        infoBox.value = data;
+      } catch (error) {
+        console.error("Error loading info:", error);
+        infoBox.value = "Failed to load information.";
+      }
+    }
+
+    // Login
+    editBtn.onclick = async () => {
+      const user = prompt("Enter User ID:");
+      const pass = prompt("Enter Password:");
+      if (!user || !pass) return;
+
+      try {
+        const response = await fetch(`${apiUrl}?action=login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `user_id=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`
+        });
+        
+        const result = await response.text();
+        
+        if (result === "success") {
+          infoBox.removeAttribute("readonly");
+          editBtn.style.display = "none";
+          saveBtn.style.display = "inline";
+        } else {
+          alert("Authentication failed!");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        alert("Error during authentication!");
+      }
+    };
+
+    // Save Edited Info
+    saveBtn.onclick = async () => {
+      const newInfo = infoBox.value;
+
+      try {
+        const response = await fetch(`${apiUrl}?action=updateInfo`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `new_info=${encodeURIComponent(newInfo)}`
+        });
+        
+        const result = await response.text();
+        
+        if (result === "updated") {
+          alert("Information updated successfully!");
+          infoBox.setAttribute("readonly", true);
+          editBtn.style.display = "inline";
+          saveBtn.style.display = "none";
+        } else {
+          alert("Failed to update info.");
+        }
+      } catch (error) {
+        console.error("Save error:", error);
+        alert("Error saving information!");
+      }
+    };
+
+    // Load info on page load
+    window.onload = loadInfo;
+  </script>
+</body>
+</html>

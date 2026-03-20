@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editable Info Box</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #infoBox { width: 100%; height: 150px; }
+    #editBtn, #saveBtn { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Information Box</h2>
+  <textarea id="infoBox" readonly></textarea><br />
+  <button id="editBtn">Edit</button>
+  <button id="saveBtn" style="display:none;">Save</button>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbw55-ABTpLLo8w6ZbW77PYtC-zLzkGQwNlCQfvCXW8UrEbLdOo8Lum9LlZN8aN3DzKg/exec";
+
+    const infoBox = document.getElementById("infoBox");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+
+    // JSONP helper
+    function loadJSONP(url) {
+      const script = document.createElement('script');
+      script.src = url;
+      document.body.appendChild(script);
+    }
+
+    // Initial Info Load
+    function loadInfo() {
+      loadJSONP(`${apiUrl}?action=getInfo&callback=showInfo`);
+    }
+
+    function showInfo(data) {
+      infoBox.value = data;
+    }
+
+    // Login
+    editBtn.onclick = () => {
+      const user = prompt("Enter User ID:");
+      const pass = prompt("Enter Password:");
+      if (!user || !pass) return;
+
+      window.loginCallback = (response) => {
+        if (response === "success") {
+          infoBox.removeAttribute("readonly");
+          editBtn.style.display = "none";
+          saveBtn.style.display = "inline";
+        } else {
+          alert("Authentication failed!");
+        }
+      };
+
+      loadJSONP(`${apiUrl}?action=login&user_id=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&callback=loginCallback`);
+    };
+
+    // Save Edited Info
+    saveBtn.onclick = () => {
+      const newInfo = infoBox.value;
+
+      window.saveCallback = (response) => {
+        if (response === "updated") {
+          alert("Information updated successfully!");
+          infoBox.setAttribute("readonly", true);
+          editBtn.style.display = "inline";
+          saveBtn.style.display = "none";
+        } else {
+          alert("Failed to update info.");
+        }
+      };
+
+      loadJSONP(`${apiUrl}?action=updateInfo&new_info=${encodeURIComponent(newInfo)}&callback=saveCallback`);
+    };
+
+    // Load info on page load
+    window.onload = loadInfo;
+  </script>
+</body>
+</html>

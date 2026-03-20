@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editable Info Box</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #infoBox { width: 100%; height: 150px; }
+    #editBtn, #saveBtn { margin-top: 10px; padding: 8px 16px; }
+    #status { margin-top: 10px; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h2>Information Box</h2>
+  <textarea id="infoBox" readonly></textarea><br />
+  <button id="editBtn">Edit</button>
+  <button id="saveBtn" style="display:none;">Save</button>
+  <div id="status">Loading information...</div>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbyigskCjRYyDmC0s15x_FjmSHRWu1p1-qBSw2y4vqtchMs3YN8iT_2WeQHpTNH9iKE/exec";
+    const infoBox = document.getElementById("infoBox");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const statusDiv = document.getElementById("status");
+
+    // Load initial information
+    async function loadInfo() {
+      try {
+        statusDiv.textContent = "Loading information...";
+        const response = await fetch(`${apiUrl}?action=getInfo`);
+        const data = await response.text();
+        
+        // Handle JSONP response if needed
+        if (data.startsWith('showInfo("') || data.includes('callback')) {
+          const match = data.match(/showInfo\("?(.*?)"?\)/);
+          infoBox.value = match ? match[1] : "Error parsing data";
+        } else {
+          infoBox.value = data;
+        }
+        statusDiv.textContent = "Information loaded successfully";
+      } catch (error) {
+        console.error("Error loading info:", error);
+        infoBox.value = "Failed to load information";
+        statusDiv.textContent = "Error loading information";
+      }
+    }
+
+    // Handle login
+    editBtn.onclick = async () => {
+      const user = prompt("Enter User ID:");
+      if (!user) return;
+      
+      const pass = prompt("Enter Password:");
+      if (!pass) return;
+
+      try {
+        statusDiv.textContent = "Authenticating...";
+        
+        // Using POST for security
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=login&user_id=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`
+        });
+        
+        const result = await response.text();
+        console.log("Login response:", result); // Debug log
+        
+        // Handle different response formats
+        let authResult;
+        if (result.startsWith('loginCallback("')) {
+          authResult = result.match(/loginCallback\("?(.*?)"?\)/)[1];
+        } else {
+          authResult = result;
+        }
+
+        if (authResult.trim() === "success") {
+          infoBox.removeAttribute("readonly");
+          editBtn.style.display = "none";
+          saveBtn.style.display = "inline";
+          statusDiv.textContent = "Authentication successful - you can now edit";
+        } else {
+          statusDiv.textContent = "Authentication failed";
+          alert("Invalid credentials. Please try again.");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        statusDiv.textContent = "Error during authentication";
+        alert("Error during authentication. Please try again.");
+      }
+    };
+
+    // Handle saving
+    saveBtn.onclick = async () => {
+      const newInfo = infoBox.value.trim();
+      if (!newInfo) {
+        alert("Please enter some information to save");
+        return;
+      }
+
+      try {
+        statusDiv.textContent = "Saving information...";
+        
+        // Using POST for security
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=updateInfo&new_info=${encodeURIComponent(newInfo)}`
+        });
+        
+        const result = await response.text();
+        console.log("Save response:", result); // Debug log
+        
+        // Handle different response formats
+        let saveResult;
+        if (result.startsWith('saveCallback("')) {
+          saveResult = result.match(/saveCallback\("?(.*?)"?\)/)[1];
+        } else {
+          saveResult = result;
+        }
+
+        if (saveResult.trim() === "updated") {
+          infoBox.setAttribute("readonly", true);
+          editBtn.style.display = "inline";
+          saveBtn.style.display = "none";
+          statusDiv.textContent = "Information updated successfully!";
+          alert("Changes saved successfully!");
+        } else {
+          statusDiv.textContent = "Failed to save information";
+          alert("Failed to save information. Please try again.");
+        }
+      } catch (error) {
+        console.error("Save error:", error);
+        statusDiv.textContent = "Error saving information";
+        alert("Error saving information. Please try again.");
+      }
+    };
+
+    // Load info when page loads
+    window.addEventListener('DOMContentLoaded', loadInfo);
+  </script>
+</body>
+</html>
