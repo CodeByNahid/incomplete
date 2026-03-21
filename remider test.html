@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reminder Notification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      font-size: 16px;
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Set a Reminder</h2>
+  <input type="text" id="reminderMsg" placeholder="Reminder message" />
+  <input type="number" id="reminderTime" placeholder="Delay in seconds" />
+  <button onclick="setReminder()">Set Reminder</button>
+
+  <script>
+    // Ask for notification permission
+    document.addEventListener('DOMContentLoaded', () => {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission !== 'granted') {
+            alert('Please allow notifications to use this feature.');
+          }
+        });
+      } else {
+        alert('Notifications are not supported on this browser.');
+      }
+    });
+
+    function setReminder() {
+      const msg = document.getElementById('reminderMsg').value;
+      const delay = parseInt(document.getElementById('reminderTime').value, 10) * 1000;
+
+      if (!msg || isNaN(delay)) {
+        alert('Please enter a message and a valid delay.');
+        return;
+      }
+
+      setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('Reminder', {
+            body: msg,
+            icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png'
+          });
+        }
+      }, delay);
+
+      alert('Reminder set!');
+    }
+  </script>
+</body>
+</html>
