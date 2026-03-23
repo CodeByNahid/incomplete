@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circular Clock</title>
+
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #0f172a;
+  margin: 0;
+}
+
+.clock {
+  width: 80vmin;
+  height: 80vmin;
+  position: relative;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.bg {
+  stroke: #1e293b;
+}
+
+.seconds {
+  stroke: #38bdf8;
+}
+
+.minutes {
+  stroke: #22c55e;
+}
+
+.hours {
+  stroke: #f97316;
+}
+
+.time-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: monospace;
+  font-size: 5vmin;
+  color: #e5e7eb;
+}
+</style>
+</head>
+
+<body>
+
+<div class="clock">
+  <svg viewBox="0 0 200 200">
+
+    <!-- Hours -->
+    <circle class="bg" cx="100" cy="100" r="60" stroke-width="8"/>
+    <circle class="hours" cx="100" cy="100" r="60" stroke-width="8"/>
+
+    <!-- Minutes -->
+    <circle class="bg" cx="100" cy="100" r="75" stroke-width="6"/>
+    <circle class="minutes" cx="100" cy="100" r="75" stroke-width="6"/>
+
+    <!-- Seconds -->
+    <circle class="bg" cx="100" cy="100" r="90" stroke-width="4"/>
+    <circle class="seconds" cx="100" cy="100" r="90" stroke-width="4"/>
+
+  </svg>
+
+  <div class="time-text" id="digitalTime"></div>
+</div>
+
+<script>
+const secondsCircle = document.querySelector(".seconds");
+const minutesCircle = document.querySelector(".minutes");
+const hoursCircle = document.querySelector(".hours");
+
+function setupCircle(circle) {
+  const radius = circle.r.baseVal.value;
+  const circumference = 2 * Math.PI * radius;
+  circle.style.strokeDasharray = circumference;
+  circle.style.strokeDashoffset = circumference;
+  return circumference;
+}
+
+const secLen = setupCircle(secondsCircle);
+const minLen = setupCircle(minutesCircle);
+const hourLen = setupCircle(hoursCircle);
+
+function updateClock() {
+  const now = new Date();
+
+  const seconds = now.getSeconds();
+  const minutes = now.getMinutes() + seconds / 60;
+  const hours = (now.getHours() % 12) + minutes / 60;
+
+  secondsCircle.style.strokeDashoffset =
+    secLen - (seconds / 60) * secLen;
+
+  minutesCircle.style.strokeDashoffset =
+    minLen - (minutes / 60) * minLen;
+
+  hoursCircle.style.strokeDashoffset =
+    hourLen - (hours / 12) * hourLen;
+
+  document.getElementById("digitalTime").textContent =
+    now.toLocaleTimeString();
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>
